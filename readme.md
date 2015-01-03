@@ -20,7 +20,7 @@ Execution
 
 To download and execute wifite, run the commands below:
 
-`wget https://raw.github.com/derv82/wifite/master/wifite.py`  
+`wget https://raw.github.com/brianpow/wifite/master/wifite.py`  
 `chmod +x wifite.py`  
 `./wifite.py`  
 
