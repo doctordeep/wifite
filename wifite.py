@@ -197,7 +197,7 @@ class RunConfiguration:
         # WPA variables
         #self.WPA_DISABLE = False  # Flag to skip WPA handshake capture
         self.WPA_ATTACK_DISABLE=False
-        self.WPA_STRIP_HANDSHAKE = True  # Use pyrit or tshark (if applicable) to strip handshake
+        self.WPA_STRIP_HANDSHAKE = False  # Use pyrit or tshark (if applicable) to strip handshake
         self.WPA_DEAUTH_COUNT = 5  # Count to send deauthentication packets
         self.WPA_DEAUTH_TIMEOUT = 10  # Time to wait between deauthentication bursts (in seconds)
         self.WPA_ATTACK_TIMEOUT = 500  # Total time to allow for a handshake attack (in seconds)
@@ -210,13 +210,13 @@ class RunConfiguration:
         self.WPA_RECAPTURE_HS=False        
         self.WPA_FINDINGS = []  # List of strings containing info on successful WPA attacks
         self.WPA_DONT_CRACK = False  # Flag to skip cracking of handshakes
-        self.WPA_DICTIONARY = '/pentest/web/wfuzz/wordlist/fuzzdb/wordlists-user-passwd/passwds/phpbb.txt'
+        self.WPA_DICTIONARY = '/usr/share/sqlmap/txt/smalldict.txt'
         if not os.path.exists(self.WPA_DICTIONARY): self.WPA_DICTIONARY = ''
 
         # Various programs to use when checking for a four-way handshake.
         # True means the program must find a valid handshake in order for wifite to recognize a handshake.
         # Not finding handshake short circuits result (ALL 'True' programs must find handshake)
-        self.WPA_HANDSHAKE_TSHARK = True  # Checks for sequential 1,2,3 EAPOL msg packets (ignores 4th)
+        self.WPA_HANDSHAKE_TSHARK = False  # Checks for sequential 1,2,3 EAPOL msg packets (ignores 4th)
         self.WPA_HANDSHAKE_PYRIT = False  # Sometimes crashes on incomplete dumps, but accurate.
         self.WPA_HANDSHAKE_AIRCRACK = True  # Not 100% accurate, but fast.
         self.WPA_HANDSHAKE_COWPATTY = False  # Uses more lenient "nonstrict mode" (-2)
@@ -962,9 +962,9 @@ class RunEngine:
             { 'name':'aircrack-ng', 'url': 'http://www.aircrack-ng.org', 'install':['sudo','apt-get','install','aircrack-ng'], 'files': ['aircrack-ng', 'airodump-ng', 'aireplay-ng', 'airmon-ng', 'packetforge-ng'], 'critical': True },
             { 'name':'iw', 'url': '','install':'apt-get install aircrack-ng','install':['sudo','apt-get','install','iw'], 'files': ['iw'], 'critical': True },
             { 'name':'reaver', 'url': 'http://code.google.com/p/reaver-wps','install':['sudo','apt-get','install','reaver'], 'files': ['reaver',['walsh','wash']], 'critical': True },
-            { 'name':'cowpatty', 'url': 'http://sf.net/cowpatty', 'install':['sudo','apt-get','install','cowpatty'], 'files': ['cowpatty'], 'critical': False},
+            #{ 'name':'cowpatty', 'url': 'http://sf.net/cowpatty', 'install':['sudo','apt-get','install','cowpatty'], 'files': ['cowpatty'], 'critical': False},
             { 'name':'pyrit', 'url': 'http://code.google.com/p/pyrit', 'install':['sudo','apt-get','install','pyrit'], 'files': ['pyrit'], 'critical': False },
-            { 'name':'tshark', 'url':'http://www.wireshark.org', 'install':['sudo','apt-get','install','wireshark'], 'files': ['cowpatty'], 'critical': False }]
+            { 'name':'tshark', 'url':'http://www.wireshark.org', 'install':['sudo','apt-get','install','wireshark'], 'files': ['tshark'], 'critical': False }]
         incomplete=[]
         for program in programs:
             not_found=[]
@@ -1477,8 +1477,8 @@ class RunEngine:
         self.print_targets(targets, clients, self.RUN_CONFIG.SCAN_MAX_ROW_SHOW, self.RUN_CONFIG.COLUMN,self.RUN_CONFIG.SPACING)
         if(self.RUN_CONFIG.ATTACK_TARGET == ""):
             ri = raw_input((GR + "\n [+]" + W + " enter " + G + "target numbers" + W + " (" + G + "1-%s" + W + ")") % (str(len(targets))) + \
-            (" separated by commas, range (e.g.'" + G + "1-2" + W + "'), or wildcards: %s, ") % (G + 'c[num/range]' + W + ' for channel, ' + G + 'p[>=,>,=,<,<=][num]' + W + ' for power, ' + G + 'wep' + W + ', ' + G + 'wep[num of client]' + W + ' or ' + G + 'wep+' + W + " with client, " + G + 'wpa' + W + ' (same syntax as wep), ' + G + 'wps[0,1]' + W + '(0=no, 1=yes), ' + G + 'e[SSID][+]' +W +', ' + G + 'b[BSSID][+]' + W + ' or ' + G + 'all' + W) + \
-            "blank input = " + G + "all" + W + ", add " + G + '-' + W + " before to remove:" )
+            (" separated by commas, range (e.g.'" + G + "1-2" + W + "'), or wildcards: %s, ") % (G + 'c[num/range]' + W + ' for channel, ' + G + 'p[>=,>,=,<,<=][num]' + W + ' for power, ' + G + 'wep' + W + ', ' + G + 'wep[num of client]' + W + ' or ' + G + 'wep+' + W + " with client, " + G + 'wpa' + W + ' (same syntax as wep), ' + G + 'wps[0,1]' + W + ' (0=no, 1=yes), ' + G + 'e[SSID][+]' +W +', ' + G + 'b[BSSID][+]' + W + ' or ' + G + 'all' + W) + \
+            "blank input = " + G + "all" + W + ", add " + G + '-' + W + " before to remove: " )
         else:
             ri=self.RUN_CONFIG.ATTACK_TARGET
         victims=self.filter_targets(targets, clients, ri)
@@ -1659,8 +1659,6 @@ class RunEngine:
                 header_text += " "
         
         print header_text
-
-        
 
         total_targets=len(targets)
         if max_rows > 0 and rows > max_rows:
@@ -1863,8 +1861,8 @@ class RunEngine:
     def Start(self):
         
         self.RUN_CONFIG.ConfirmCorrectPlatform()
-        self.RUN_CONFIG.ConfirmRunningAsRoot()
         self.RUN_CONFIG.handle_args()
+        self.RUN_CONFIG.ConfirmRunningAsRoot()
         self.RUN_CONFIG.CreateTempFolder()
 
         if not self.programs_check():  # Ensure required programs are installed.
@@ -1923,7 +1921,6 @@ class RunEngine:
                     #    remove_file(handshake_file)
                     #    continue
                 index += 1
-
 
         except KeyboardInterrupt:
             print '\n ' + R + '(^C)' + O + ' interrupted\n'
@@ -2008,7 +2005,7 @@ class RunEngine:
                 println_info('starting ' + G + 'WPA cracker' + W + ' on %s%d handshake%s' % (
                 G, caps, W if caps == 1 else 's'))
                 for cap in self.RUN_CONFIG.WPA_CAPS_TO_CRACK:
-                    wpa_crack(cap)
+                    wpa_crack(cap, self.RUN_CONFIG)
 
         print ''
         self.RUN_CONFIG.exit_gracefully(0)
@@ -3115,7 +3112,7 @@ def wpa_crack(capfile, RUN_CONFIG):
         they can do so manually.
     """
     if RUN_CONFIG.WPA_DICTIONARY == '':
-        println_error('no WPA dictionary found! use -dict <file> command-line argument')
+        println_error('no WPA dictionary found! use --crack --dict <file> command-line argument')
         return False
 
     print GR + ' [0:00:00]' + W + ' cracking %s with %s' % (G + capfile.ssid + W, G + 'aircrack-ng' + W)
@@ -3157,7 +3154,7 @@ def wpa_crack(capfile, RUN_CONFIG):
                     cracked = True
                 else:
                     # Did not crack
-                    print R + '\n [!]' + R + 'crack attempt failed' + O + ': passphrase not in dictionary' + W
+                    print R + '\n [!]' + R + ' crack attempt failed' + O + ': passphrase not in dictionary' + W
                 break
 
             inf = open(RUN_CONFIG.temp + 'out.out', 'r')
@@ -3612,7 +3609,6 @@ class WEPAttack(Attack):
         except OSError:
             println_error('unable to save capture file!')
         #else:
-
 
     def wep_fake_auth(self, iface, target, time_to_display):
         """
